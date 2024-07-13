@@ -9,6 +9,17 @@ export interface RepoFile {
 
 @Injectable()
 export class GitService {
+  private readonly token: string;
+
+  constructor() {
+    this.token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+    if (!this.token) {
+      throw new Error(
+        'GitHub personal access token not found in environment variables',
+      );
+    }
+  }
+
   async fetchRepo(owner: string, repo: string): Promise<RepoFile[]> {
     return this.fetchDirectory(owner, repo, '');
   }
@@ -21,7 +32,12 @@ export class GitService {
     const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
 
     try {
-      const response = await fetch(apiUrl);
+      const response = await fetch(apiUrl, {
+        headers: {
+          Authorization: `token ${this.token}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
       const data = await response.json();
 
       console.log(data);
