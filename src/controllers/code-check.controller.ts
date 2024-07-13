@@ -18,6 +18,7 @@ import {
   RepoNotFoundError,
   UnknownError,
 } from 'src/errors/app.errors';
+import { ThrottlerException } from '@nestjs/throttler';
 
 @Controller('check')
 export class CodeCheckController {
@@ -32,7 +33,12 @@ export class CodeCheckController {
     try {
       return await this.codeCheckService.checkRepo(checkRepoDto.repoUrl);
     } catch (error) {
-      if (error instanceof RepoNotFoundError) {
+      if (error instanceof ThrottlerException) {
+        throw new HttpException(
+          'Rate limit exceeded',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      } else if (error instanceof RepoNotFoundError) {
         throw new HttpException(error.message, HttpStatus.NOT_FOUND);
       } else if (error instanceof NetworkError) {
         throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
