@@ -22,10 +22,13 @@ export class GitService {
 
     try {
       const response = await fetch(apiUrl);
+      const data = await response.json();
+
+      console.log(data);
+
       if (!response.ok) {
         throw new Error(`GitHub API responded with status: ${response.status}`);
       }
-      const data = await response.json();
 
       const files: RepoFile[] = [];
 
