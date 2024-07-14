@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Browser, chromium, Page } from 'playwright';
 import { BrowserError } from 'src/errors/app.errors';
+import { CHECK_LABELS } from '../constants';
 
 export interface CheckResult {
   status: 'pass' | 'fail';
@@ -12,9 +13,10 @@ export interface FileCheckResult {
   fileName: string;
   passed: boolean;
   checks: {
-    singleH1: CheckResult;
-    imageAlts: CheckResult;
-    w3cValidation: CheckResult;
+    singleH1: { label: string } & CheckResult;
+    imageAlts: { label: string } & CheckResult;
+    w3cValidation: { label: string } & CheckResult;
+    horizontalScrollbar: { label: string } & CheckResult;
   };
 }
 
@@ -81,11 +83,22 @@ export class PlaywrightService implements OnModuleInit, OnModuleDestroy {
     fileName: string,
   ): Promise<FileCheckResult> {
     const checks = {
-      singleH1: await this.checkSingleH1(page),
-      imageAlts: await this.checkImageAlts(page),
+      singleH1: {
+        label: CHECK_LABELS.SINGLE_H1,
+        ...(await this.checkSingleH1(page)),
+      },
+      imageAlts: {
+        label: CHECK_LABELS.IMAGE_ALTS,
+        ...(await this.checkImageAlts(page)),
+      },
       w3cValidation: {
+        label: CHECK_LABELS.W3C_VALIDATION,
         status: 'pass' as const,
         message: 'W3C validation not performed in this service',
+      },
+      horizontalScrollbar: {
+        label: CHECK_LABELS.HORIZONTAL_SCROLLBAR,
+        ...(await this.checkHorizontalScrollbar(page)),
       },
     };
 
@@ -179,6 +192,53 @@ export class PlaywrightService implements OnModuleInit, OnModuleDestroy {
       return {
         status: 'fail',
         message: `Error checking image alts: ${error.message}`,
+      };
+    }
+  }
+
+  private async checkHorizontalScrollbar(page: Page): Promise<CheckResult> {
+    const minWidth = 320;
+    const maxWidth = 1920;
+    const height = 1080;
+
+    try {
+      let scrollbarDetected = false;
+      let detectedWidth = 0;
+
+      for (let width = minWidth; width <= maxWidth; width += 10) {
+        await page.setViewportSize({ width, height });
+
+        const hasScrollbar = await page.evaluate(() => {
+          return (
+            document.documentElement.scrollWidth >
+            document.documentElement.clientWidth
+          );
+        });
+
+        if (hasScrollbar) {
+          scrollbarDetected = true;
+          detectedWidth = width;
+          break;
+        }
+      }
+
+      if (scrollbarDetected) {
+        return {
+          status: 'fail',
+          message: `Horizontal scrollbar detected at ${detectedWidth}px width`,
+        };
+      } else {
+        return {
+          status: 'pass',
+          message:
+            'No horizontal scrollbar detected for widths 320px and above',
+        };
+      }
+    } catch (error) {
+      console.error('Error in checkHorizontalScrollbar:', error);
+      return {
+        status: 'fail',
+        message: `Error checking for horizontal scrollbar: ${error.message}`,
       };
     }
   }

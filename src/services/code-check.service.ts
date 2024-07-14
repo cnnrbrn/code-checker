@@ -12,18 +12,27 @@ import {
   RepoNotFoundError,
   UnknownError,
 } from 'src/errors/app.errors';
+import { CHECK_LABELS } from '../constants';
 
 export interface RepoCheckSummary {
   totalFiles: number;
   h1Checks: {
+    label: string;
     passed: number;
     failed: number;
   };
   imageAltChecks: {
+    label: string;
     passed: number;
     failed: number;
   };
   w3cValidation: {
+    label: string;
+    passed: number;
+    failed: number;
+  };
+  horizontalScrollbarChecks: {
+    label: string;
     passed: number;
     failed: number;
   };
@@ -64,7 +73,10 @@ export class CodeCheckService {
             ...checkResult,
             checks: {
               ...checkResult.checks,
-              w3cValidation,
+              w3cValidation: {
+                label: CHECK_LABELS.W3C_VALIDATION,
+                ...w3cValidation,
+              },
             },
           };
           const passed = this.allChecksPassed(updatedCheckResult.checks);
@@ -81,9 +93,23 @@ export class CodeCheckService {
             fileName: file.path,
             passed: false,
             checks: {
-              singleH1: { status: 'fail', message: `Error: ${error.message}` },
-              imageAlts: { status: 'fail', message: `Error: ${error.message}` },
+              singleH1: {
+                label: CHECK_LABELS.SINGLE_H1,
+                status: 'fail',
+                message: `Error: ${error.message}`,
+              },
+              imageAlts: {
+                label: CHECK_LABELS.IMAGE_ALTS,
+                status: 'fail',
+                message: `Error: ${error.message}`,
+              },
               w3cValidation: {
+                label: CHECK_LABELS.W3C_VALIDATION,
+                status: 'fail',
+                message: `Error: ${error.message}`,
+              },
+              horizontalScrollbar: {
+                label: CHECK_LABELS.HORIZONTAL_SCROLLBAR,
                 status: 'fail',
                 message: `Error: ${error.message}`,
               },
@@ -143,22 +169,34 @@ export class CodeCheckService {
     const summary: RepoCheckSummary = {
       totalFiles: results.length,
       h1Checks: {
+        label: CHECK_LABELS.SINGLE_H1,
         passed: results.filter((r) => r.checks.singleH1.status === 'pass')
           .length,
         failed: results.filter((r) => r.checks.singleH1.status === 'fail')
           .length,
       },
       imageAltChecks: {
+        label: CHECK_LABELS.IMAGE_ALTS,
         passed: results.filter((r) => r.checks.imageAlts.status === 'pass')
           .length,
         failed: results.filter((r) => r.checks.imageAlts.status === 'fail')
           .length,
       },
       w3cValidation: {
+        label: CHECK_LABELS.W3C_VALIDATION,
         passed: results.filter((r) => r.checks.w3cValidation.status === 'pass')
           .length,
         failed: results.filter((r) => r.checks.w3cValidation.status === 'fail')
           .length,
+      },
+      horizontalScrollbarChecks: {
+        label: CHECK_LABELS.HORIZONTAL_SCROLLBAR,
+        passed: results.filter(
+          (r) => r.checks.horizontalScrollbar.status === 'pass',
+        ).length,
+        failed: results.filter(
+          (r) => r.checks.horizontalScrollbar.status === 'fail',
+        ).length,
       },
     };
 
