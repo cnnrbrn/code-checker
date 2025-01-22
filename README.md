@@ -9,3 +9,9 @@ Run it in dev through VSCode debug tools or
 "start:dev": "nest start --watch",
 "start:debug": "nest start --debug --watch",
 ```
+
+.env:
+
+```
+GITHUB_PERSONAL_ACCESS_TOKEN=
+```
